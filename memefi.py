@@ -14,6 +14,12 @@ from utils.queries import QUERY_TASK_VERIF, QUERY_TASK_COMPLETED, QUERY_GET_TASK
 
 url = "https://api-gw-tg.memefi.club/graphql"
 
+def load_user_agents(file_path):
+    with open(file_path, 'r') as file:
+        return [line.strip() for line in file]
+
+user_agents = load_user_agents('user_agents.txt')
+
 # HANDLE SEMUA ERROR TAROH DISINI BANG SAFE_POST
 async def safe_post(session, url, headers, json_payload):
     retries = 5
@@ -39,6 +45,8 @@ def generate_random_nonce(length=52):
 
 # Mendapatkan akses token
 async def fetch(account_line):
+    user_agent = user_agents[account_line - 1]  # Get the specific user-agent for the account
+
     with open('query_id.txt', 'r') as file:
         lines = file.readlines()
         raw_data = lines[account_line - 1].strip()
@@ -53,6 +61,8 @@ async def fetch(account_line):
 
     url = 'https://api-gw-tg.memefi.club/graphql'
     headers = headers_set.copy()  # Membuat salinan headers_set agar tidak mengubah variabel global
+    headers['User-Agent'] = user_agent  # Set the specific user-agent for this account
+
     data = {
         "operationName": "MutationTelegramUserLogin",
         "variables": {
@@ -97,6 +107,8 @@ async def cek_user(index):
 
     headers = headers_set.copy()  # Membuat salinan headers_set agar tidak mengubah variabel global
     headers['Authorization'] = f'Bearer {access_token}'
+    user_agent = user_agents[index]  # Get the specific user-agent for the account
+    headers['User-Agent'] = user_agent  # Set the specific user-agent for this account
     
     json_payload = {
         "operationName": "QueryTelegramUserMe",
@@ -126,6 +138,8 @@ async def activate_energy_recharge_booster(index,headers):
     access_token = await fetch(index + 1)
     headers = headers_set.copy()  # Membuat salinan headers_set agar tidak mengubah variabel global
     headers['Authorization'] = f'Bearer {access_token}'
+    user_agent = user_agents[index]  # Get the specific user-agent for the account
+    headers['User-Agent'] = user_agent  # Set the specific user-agent for this account
     
     recharge_booster_payload = {
             "operationName": "telegramGameActivateBooster",
@@ -154,6 +168,8 @@ async def activate_booster(index, headers):
 
     headers = headers_set.copy()  # Membuat salinan headers_set agar tidak mengubah variabel global
     headers['Authorization'] = f'Bearer {access_token}'
+    user_agent = user_agents[index]  # Get the specific user-agent for the account
+    headers['User-Agent'] = user_agent  # Set the specific user-agent for this account
 
     recharge_booster_payload = {
         "operationName": "telegramGameActivateBooster",
@@ -204,6 +220,8 @@ async def submit_taps(index, json_payload):
 
     headers = headers_set.copy()
     headers['Authorization'] = f'Bearer {access_token}'
+    user_agent = user_agents[index]  # Get the specific user-agent for the account
+    headers['User-Agent'] = user_agent  # Set the specific user-agent for this account
 
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=json_payload) as response:
@@ -219,6 +237,8 @@ async def set_next_boss(index, headers):
 
     headers = headers_set.copy()  # Membuat salinan headers_set agar tidak mengubah variabel global
     headers['Authorization'] = f'Bearer {access_token}'
+    user_agent = user_agents[index]  # Get the specific user-agent for the account
+    headers['User-Agent'] = user_agent  # Set the specific user-agent for this account
     boss_payload = {
         "operationName": "telegramGameSetNextBoss",
         "variables": {},
@@ -240,6 +260,8 @@ async def cek_stat(index,headers):
 
     headers = headers_set.copy()  # Membuat salinan headers_set agar tidak mengubah variabel global
     headers['Authorization'] = f'Bearer {access_token}'
+    user_agent = user_agents[index]  # Get the specific user-agent for the account
+    headers['User-Agent'] = user_agent  # Set the specific user-agent for this account
     
     json_payload = {
         "operationName": "QUERY_GAME_CONFIG",
@@ -271,6 +293,8 @@ async def check_and_complete_tasks(index, headers):
     access_token = await fetch(index + 1)
     headers = headers_set.copy()  # Membuat salinan headers_set agar tidak mengubah variabel global
     headers['Authorization'] = f'Bearer {access_token}'
+    user_agent = user_agents[index]  # Get the specific user-agent for the account
+    headers['User-Agent'] = user_agent  # Set the specific user-agent for this account
     task_list_payload = {
         "operationName": "GetTasksList",
         "variables": {"campaignId": "50ef967e-dd9b-4bd8-9a19-5d79d7925454"},
