@@ -412,6 +412,19 @@ async def main():
                 else:
                     print(f"❌ Gagal dengan status {tap_result}, mencoba lagi...")
 
+                if user_input == 'y':
+                    index = 0
+                    headers = headers_set
+                    await get_bot_config(index, headers)
+                try:
+                    await claim_bot_results(index, headers)
+                except TypeError as te:
+                    print(f"❌ TypeError claim_bot_results: belum waktunya claim")
+                    time.sleep(2)
+                try:
+                    await start_bot(index, headers)
+                except TypeError as te:
+                    print(f"❌ TypeError start_bot: tapbot sedang berjalan")
                 if auto_claim_combo == 'y':
                     await claim_combo(index, headers)
   
@@ -501,6 +514,147 @@ async def claim_combo(index, headers):
                 else:
                     print("❌ Gagal mengklaim combo: Data tidak lengkap atau tidak ada.")
 
+async def get_bot_config(index, headers):
+    access_token = await fetch(index + 1)
+    url = "https://api-gw-tg.memefi.club/graphql"
+    headers = headers_set.copy()
+    headers['Authorization'] = f'Bearer {access_token}'
+
+    
+    get_config_payload = {
+        "operationName": "TapbotConfig",
+        "variables": {},
+        "query": """
+        fragment FragmentTapBotConfig on TelegramGameTapbotOutput {
+            damagePerSec
+            endsAt
+            id
+            isPurchased
+            startsAt
+            totalAttempts
+            usedAttempts
+            __typename
+        }
+        
+        query TapbotConfig {
+            telegramGameTapbotGetConfig {
+                ...FragmentTapBotConfig
+                __typename
+            }
+        }
+        """
+    }
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=get_config_payload, headers=headers) as response:
+                if response.status == 200:
+                    response_data = await response.json()
+                    if 'data' in response_data and 'telegramGameTapbotGetConfig' in response_data['data']:
+                        game_data = response_data['data']['telegramGameTapbotGetConfig']
+                        print(f"✅ Konfigurasi bot diambil: ID {game_data['id']}, Damage per Sec {game_data['damagePerSec']}")
+                    else:
+                        print("❌ Gagal mengambil konfigurasi bot: Data tidak lengkap atau tidak ada.")
+                else:
+                    print(f"❌ Gagal mengambil konfigurasi bot: Status code {response.status}")
+    except aiohttp.ClientResponseError as e:
+        print(f"❌ Error dalam permintaan: {e}")
+
+async def claim_bot_results(index, headers):
+    access_token = await fetch(index + 1)
+    url = "https://api-gw-tg.memefi.club/graphql"
+    headers = headers.copy()  # Pastikan untuk menggunakan headers yang diberikan
+    headers['Authorization'] = f'Bearer {access_token}'
+
+    claim_bot_payload = {
+        "operationName": "TapbotClaim",
+        "variables": {},
+        "query": """
+        fragment FragmentTapBotConfig on TelegramGameTapbotOutput {
+            damagePerSec
+            endsAt
+            id
+            isPurchased
+            startsAt
+            totalAttempts
+            usedAttempts
+            __typename
+        }
+        
+        mutation TapbotClaim {
+            telegramGameTapbotClaimCoins {
+                ...FragmentTapBotConfig
+                __typename
+            }
+        }
+        """
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=claim_bot_payload, headers=headers) as response:
+                response.raise_for_status()  # Raise exception for bad status codes
+                response_data = await response.json()
+
+                if response_data is None:
+                    print("❌ Gagal mengklaim bot: Respons kosong atau tidak valid.")
+                elif 'data' in response_data and 'telegramGameTapbotClaimCoins' in response_data['data']:
+                    game_data = response_data['data']['telegramGameTapbotClaimCoins']
+                    if game_data['endsAt'] is None:
+                        print(f"✅ Klaim bot berhasil: ID {game_data['id']}, Damage per Sec {game_data['damagePerSec']}")
+                    else:
+                        print(f"❌ Klaim bot sudah pernah dilakukan: Tidak ada reward yang tersedia.")
+                else:
+                    print("❌ Gagal mengklaim bot: Data tidak lengkap atau tidak ada.")
+    
+    except aiohttp.ClientResponseError as e:
+        print(f"❌ Error dalam permintaan: {e}")
+
+
+async def start_bot(index, headers):
+    access_token = await fetch(index + 1)
+    url = "https://api-gw-tg.memefi.club/graphql"
+    headers = headers.copy()  # Pastikan untuk menggunakan headers yang diberikan
+    headers['Authorization'] = f'Bearer {access_token}'
+
+    start_bot_payload = {
+        "operationName": "TapbotStart",
+        "variables": {},
+        "query": """
+        fragment FragmentTapBotConfig on TelegramGameTapbotOutput {
+            damagePerSec
+            endsAt
+            id
+            isPurchased
+            startsAt
+            totalAttempts
+            usedAttempts
+            __typename
+        }
+        
+        mutation TapbotStart {
+            telegramGameTapbotStart {
+                ...FragmentTapBotConfig
+                __typename
+            }
+        }
+        """
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=start_bot_payload, headers=headers) as response:
+                response.raise_for_status()  # Raise exception for bad status codes
+                response_data = await response.json()
+
+                if 'data' in response_data and 'telegramGameTapbotStart' in response_data['data']:
+                    game_data = response_data['data']['telegramGameTapbotStart']
+                    print(f"✅ Bot dimulai dengan sukses: ID {game_data['id']}, Damage per Sec {game_data['damagePerSec']}")
+                else:
+                    print("❌ Gagal memulai bot: Data tidak lengkap atau tidak ada.")
+    
+    except aiohttp.ClientResponseError as e:
+        print(f"❌ Error dalam permintaan: {e}")
+
                       
 def animate_energy_recharge(duration):
     frames = ["|", "/", "-", "\\"]
@@ -519,6 +673,14 @@ def animate_energy_recharge(duration):
 #     else:
 #         print("Masukkan 'y' atau 'n'.")
 cek_task_enable = 'n'
+while True:
+    user_input = input("Auto claim & start tapbot (default n) ? (y/n): ").strip().lower()
+    if user_input in ['y', 'n', '']:
+        user_input = user_input or 'n'
+        break
+    else:
+        print("Masukkan 'y' atau 'n'.")
+
 while True:
     auto_booster = input("Use Energy Booster (default n) ? (y/n): ").strip().lower()
     if auto_booster in ['y', 'n', '']:
